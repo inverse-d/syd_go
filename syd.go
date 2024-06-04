@@ -15,8 +15,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i := 0; i < len(content); i++ {
-		fmt.Println(content[i])
+	for _, i := range content {
+		fmt.Println(i)
 	}
 }
 func ReadConfig(filename string) ([]string, error) {
