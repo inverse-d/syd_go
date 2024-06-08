@@ -10,48 +10,57 @@ import (
 )
 
 func main() {
-	config := "~/.config/syd/syd.conf"
-	content, err := ReadConfig(config)
+	configFile := "~/.config/syd/syd.conf"
+	backupFolder := "~/syd"
+	dotFiles, err := ReadConfig(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, i := range content {
-		fmt.Println(i)
-	}
+	CreateBackupFolder(backupFolder)
+	fmt.Println(dotFiles)
 }
-func ReadConfig(filename string) ([]string, error) {
+func FormatePath(homePath string) string {
+	if !strings.Contains(homePath, "~") {
+		homePathFormated := filepath.Join(homePath)
+		return homePathFormated
+	}
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if !strings.Contains(filename, "~") {
-		file, err := os.Open(filepath.Join(filename))
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
-		var dotFiles []string
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			dotFiles = append(dotFiles, scanner.Text())
-		}
-		return dotFiles, scanner.Err()
+	homePathFormated := strings.Replace(homePath, "~", homeDir, 1)
+	return homePathFormated
+}
+func ReadConfig(configFile string) ([]string, error) {
+	configFile = FormatePath(configFile)
+	file, err := os.Open(configFile)
+	if err != nil {
+		log.Fatal(err)
 	}
-	file, err := os.Open(strings.Replace(filename, "~", homeDir, 1))
-		if err != nil {
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	var dotFiles []string
+	for scanner.Scan() {
+		dotFiles = append(dotFiles, scanner.Text())
+	}
+	return dotFiles, scanner.Err()
+}
+func CreateBackupFolder(backupFolder string) bool {
+	backupFolder = FormatePath(backupFolder)
+	if _, err := os.Stat(backupFolder); err != nil {
+		if os.IsNotExist(err) {
+			os.MkdirAll(backupFolder, 0755)
+			fmt.Println("Created folder:", backupFolder)
+			return true
+		} else {
 			log.Fatal(err)
 		}
-		defer file.Close()
-		var dotFiles []string
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			dotFiles = append(dotFiles, scanner.Text())
-		}
-		return dotFiles, scanner.Err()
-	
+	}
+	fmt.Println("Folder", backupFolder, "already exists.")
+	return true
 }
 
-func BackupDotfiles() {
+func BackupDotfiles(dotFiles []string, backupFolder string) {
 
 }
 
