@@ -3,23 +3,25 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"strings"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
-	configFile := "~/.config/syd/syd.conf"
-	backupFolder := "~/syd"
+	configFile := FormatPath("~/.config/syd/syd.conf")
+	backupFolder := FormatPath("~/syd")
 	dotFiles, err := ReadConfig(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 	CreateBackupFolder(backupFolder)
-	fmt.Println(dotFiles)
+	BackupDotfiles(dotFiles, FormatPath(backupFolder))
 }
-func FormatePath(homePath string) string {
+
+func FormatPath(homePath string) string {
 	if !strings.Contains(homePath, "~") {
 		homePathFormated := filepath.Join(homePath)
 		return homePathFormated
@@ -31,8 +33,8 @@ func FormatePath(homePath string) string {
 	homePathFormated := strings.Replace(homePath, "~", homeDir, 1)
 	return homePathFormated
 }
+
 func ReadConfig(configFile string) ([]string, error) {
-	configFile = FormatePath(configFile)
 	file, err := os.Open(configFile)
 	if err != nil {
 		log.Fatal(err)
@@ -45,8 +47,8 @@ func ReadConfig(configFile string) ([]string, error) {
 	}
 	return dotFiles, scanner.Err()
 }
+
 func CreateBackupFolder(backupFolder string) bool {
-	backupFolder = FormatePath(backupFolder)
 	if _, err := os.Stat(backupFolder); err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(backupFolder, 0755)
@@ -56,12 +58,30 @@ func CreateBackupFolder(backupFolder string) bool {
 			log.Fatal(err)
 		}
 	}
-	fmt.Println("Folder", backupFolder, "already exists.")
 	return true
 }
 
 func BackupDotfiles(dotFiles []string, backupFolder string) {
-
+	for _,file := range dotFiles {
+		file = FormatPath(file)
+		source, err := os.Open(file)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer source.Close()
+		fileName := filepath.Base(file)
+		destination := filepath.Join(backupFolder, fileName)
+		destinationFile, err := os.Create(destination)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer destinationFile.Close()
+		_, err = io.Copy(destinationFile, source)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Copied file: ", file)
+	}
 }
 
 func RestoreDotfiles() {
